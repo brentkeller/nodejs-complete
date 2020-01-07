@@ -13,18 +13,17 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  req.user
-    // because of the relations defined in app.js, sequelize adds special methods to models
-    // here user.createProduct auto-associates the product to the given user
-    // could also just use Product.create() and assign userId: req.user.id
-    .createProduct({
-      title: title,
-      price: price,
-      description: description,
-      imageUrl: imageUrl,
-    })
+  const product = new Product(
+    title,
+    imageUrl,
+    price,
+    description,
+    null,
+    req.user._id,
+  );
+  product
+    .save()
     .then(result => {
-      console.log(result);
       res.redirect('/admin/products');
     })
     .catch(err => console.log(err));
@@ -35,11 +34,8 @@ exports.getEditProduct = (req, res, next) => {
   if (!editMode) return req.redirect('/');
 
   const prodId = req.params.productId;
-  req.user
-    .getProducts({ where: { id: prodId } })
-    //Product.findByPk(prodId)
-    .then(products => {
-      const product = products[0] || null;
+  Product.findById(prodId)
+    .then(product => {
       if (!product) return req.redirect('/');
 
       res.render('admin/edit-product', {
@@ -54,33 +50,30 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByPk(prodId)
-    .then(product => {
-      product.title = req.body.title;
-      product.imageUrl = req.body.imageUrl;
-      product.description = req.body.description;
-      product.price = req.body.price;
-      return product.save();
-    })
-    .then(result => {
-      res.redirect('/admin/products');
-    });
+  const product = new Product(
+    req.body.title,
+    req.body.imageUrl,
+    req.body.price,
+    req.body.description,
+    prodId,
+  );
+
+  return product.save().then(result => {
+    res.redirect('/admin/products');
+  });
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByPk(prodId)
-    .then(product => {
-      product.destroy();
+  Product.deleteById(prodId)
+    .then(() => {
       res.redirect('/admin/products');
     })
     .catch(err => console.log(err));
 };
 
 exports.getProducts = (req, res, next) => {
-  //Product.findAll()
-  req.user
-    .getProducts()
+  Product.fetchAll()
     .then(products => {
       res.render('admin/products', {
         prods: products,
