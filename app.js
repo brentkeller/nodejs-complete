@@ -2,15 +2,10 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const errorController = require('./controllers/error');
-const mongoConnect = require('./util/database').mongoConnect;
 const User = require('./models/user');
-// const Product = require('./models/product');
-// const Cart = require('./models/cart');
-// const CartItem = require('./models/cart-item');
-// const Order = require('./models/order');
-// const OrderItem = require('./models/order-item');
 
 const app = express();
 
@@ -22,15 +17,15 @@ const shopRoutes = require('./routes/shop');
 
 const defaultName = 'Brent';
 const defaultEmail = 'test@test.com';
+const userId = '5e14ed1592309c7b4c9a53c6';
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-  User.findByEmail(defaultEmail)
+  User.findById(userId)
     .then(user => {
-      // store mongo object on request for later use
-      req.user = new User(user.name, user.email, user.cart, user._id);
+      req.user = user;
       next();
     })
     .catch(err => console.log(err));
@@ -41,17 +36,28 @@ app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-mongoConnect(() => {
-  User.findByEmail(defaultEmail)
-    .then(user => {
-      if (!user) {
-        user = new User(defaultName, defaultEmail);
-        return user.save();
-      }
-      return user;
-    })
-    .then(user => {
-      app.listen(3000);
-    })
-    .catch(err => console.log(err));
-});
+mongoose
+  .connect('mongodb://127.0.0.1:27017/node-complete', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(client => {
+    console.log('mongoose connected');
+    User.findById(userId)
+      .then(user => {
+        if (!user) {
+          user = new User({
+            name: defaultName,
+            email: defaultEmail,
+            cart: { items: [] },
+          });
+          return user.save();
+        }
+        return user;
+      })
+      .then(user => {
+        app.listen(3000);
+      })
+      .catch(err => console.log(err));
+  })
+  .catch(err => console.log(err));

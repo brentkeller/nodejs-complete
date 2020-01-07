@@ -13,14 +13,13 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(
+  const product = new Product({
     title,
     imageUrl,
     price,
     description,
-    null,
-    req.user._id,
-  );
+    userId: req.user,
+  });
   product
     .save()
     .then(result => {
@@ -50,22 +49,23 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  const product = new Product(
-    req.body.title,
-    req.body.imageUrl,
-    req.body.price,
-    req.body.description,
-    prodId,
-  );
+  Product.findById(prodId)
+    .then(product => {
+      product.title = req.body.title;
+      product.imageUrl = req.body.imageUrl;
+      product.price = req.body.price;
+      product.description = req.body.description;
 
-  return product.save().then(result => {
-    res.redirect('/admin/products');
-  });
+      return product.save();
+    })
+    .then(result => {
+      res.redirect('/admin/products');
+    });
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteById(prodId)
+  Product.findByIdAndRemove(prodId)
     .then(() => {
       res.redirect('/admin/products');
     })
@@ -73,7 +73,11 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
+    // Specify what fields to include or exclude in the find operation
+    // .select('title price -_id')
+    // Populate ref objects, optionally specifying which fields to include
+    // .populate('userId', 'name')
     .then(products => {
       res.render('admin/products', {
         prods: products,
