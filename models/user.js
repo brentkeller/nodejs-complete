@@ -63,6 +63,10 @@ userSchema.methods.clearCart = function(product) {
   return this.save();
 };
 
+userSchema.query.byEmail = function(email) {
+  return this.where({ email: new RegExp(email, 'i') });
+};
+
 module.exports = mongoose.model('User', userSchema);
 
 // const mongodb = require('mongodb');
