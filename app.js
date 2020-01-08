@@ -40,12 +40,9 @@ app.use(
 
 app.use((req, res, next) => {
   if (!req.session.user) return next();
-  console.log('hasUser', req.session.user);
   User.findById(req.session.user._id)
     .then(user => {
-      console.log('added user', user);
       req.user = user;
-      console.log('reqUser', req.user);
       next();
     })
     .catch(err => {
@@ -66,21 +63,23 @@ mongoose
   })
   .then(client => {
     console.log('mongoose connected');
-    User.findById(userId)
-      .then(user => {
-        if (!user) {
-          user = new User({
-            name: defaultName,
-            email: defaultEmail,
-            cart: { items: [] },
-          });
-          return user.save();
-        }
-        return user;
-      })
-      .then(user => {
-        app.listen(3000);
-      })
-      .catch(err => console.log(err));
+    app.listen(3000);
+    // Ensure we have a default user
+    // User.findById(userId)
+    //   .then(user => {
+    //     if (!user) {
+    //       user = new User({
+    //         name: defaultName,
+    //         email: defaultEmail,
+    //         cart: { items: [] },
+    //       });
+    //       return user.save();
+    //     }
+    //     return user;
+    //   })
+    //   .then(user => {
+    //     app.listen(3000);
+    //   })
+    //   .catch(err => console.log(err));
   })
   .catch(err => console.log(err));
