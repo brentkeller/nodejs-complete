@@ -30,12 +30,12 @@ exports.postAddProduct = (req, res, next) => {
 
 exports.getEditProduct = (req, res, next) => {
   const editMode = req.query.edit === 'true';
-  if (!editMode) return req.redirect('/');
+  if (!editMode) return res.redirect('/');
 
   const prodId = req.params.productId;
   Product.findById(prodId)
     .then(product => {
-      if (!product) return req.redirect('/');
+      if (!product) return res.redirect('/');
 
       res.render('admin/edit-product', {
         pageTitle: 'Edit Product',
@@ -49,23 +49,24 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findById(prodId)
-    .then(product => {
-      product.title = req.body.title;
-      product.imageUrl = req.body.imageUrl;
-      product.price = req.body.price;
-      product.description = req.body.description;
+  Product.findById(prodId).then(product => {
+    if (product.userId.toString() !== req.user._id.toString()) {
+      return res.redirect('/');
+    }
+    product.title = req.body.title;
+    product.imageUrl = req.body.imageUrl;
+    product.price = req.body.price;
+    product.description = req.body.description;
 
-      return product.save();
-    })
-    .then(result => {
+    return product.save().then(result => {
       res.redirect('/admin/products');
     });
+  });
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByIdAndRemove(prodId)
+  Product.deleteOne({ _id: prodId, userId: req.user._id })
     .then(() => {
       res.redirect('/admin/products');
     })
@@ -73,7 +74,7 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  Product.find({ userId: req.user._id })
     // Specify what fields to include or exclude in the find operation
     // .select('title price -_id')
     // Populate ref objects, optionally specifying which fields to include
