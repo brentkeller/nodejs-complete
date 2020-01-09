@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
+const { validationResult } = require('express-validator');
 
 const User = require('../models/user');
 
@@ -21,19 +22,46 @@ exports.getLogin = (req, res, next) => {
     pageTitle: 'Login',
     path: '/login',
     errorMessage,
+    oldInput: {
+      email: '',
+    },
+    validationErrors: [],
   });
 };
 
 exports.postLogin = (req, res, next) => {
+  // Basic example of setting header
   //res.setHeader('Set-Cookie', 'loggedIn=true');
+
   const email = req.body.email;
   const password = req.body.password;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render('auth/login', {
+      pageTitle: 'Login',
+      path: '/login',
+      errorMessage: errors.array()[0].msg,
+      oldInput: {
+        email,
+      },
+      validationErrors: errors.array(),
+    });
+  }
+
   User.findOne()
     .byEmail(email)
     .then(user => {
       if (!user) {
-        req.flash('error', 'Invalid email or password.');
-        res.redirect('/login');
+        return res.status(422).render('auth/login', {
+          pageTitle: 'Login',
+          path: '/login',
+          errorMessage: 'Invalid email or password.',
+          oldInput: {
+            email,
+          },
+          validationErrors: [],
+        });
       }
       bcrypt
         .compare(password, user.password)
@@ -47,8 +75,15 @@ exports.postLogin = (req, res, next) => {
               res.redirect('/');
             });
           }
-          req.flash('error', 'Invalid email or password.');
-          res.redirect('/login');
+          return res.status(422).render('auth/login', {
+            pageTitle: 'Login',
+            path: '/login',
+            errorMessage: 'Invalid email or password.',
+            oldInput: {
+              email,
+            },
+            validationErrors: [],
+          });
         })
         .catch(err => {
           console.log(err);
@@ -73,6 +108,11 @@ exports.getSignup = (req, res, next) => {
     pageTitle: 'Signup',
     path: '/signup',
     errorMessage,
+    oldInput: {
+      name: '',
+      email: '',
+    },
+    validationErrors: [],
   });
 };
 
@@ -80,39 +120,41 @@ exports.postSignup = (req, res, next) => {
   const name = req.body.name;
   const email = req.body.email;
   const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
-  // TODO: add validation
-  User.findOne()
-    .byEmail(email)
-    .then(existingUser => {
-      if (existingUser) {
-        req.flash('error', 'An account with that email already exists.');
-        return res.redirect('/signup');
-      }
-      return bcrypt
-        .hash(password, 12)
-        .then(hashedPassword => {
-          const user = new User({
-            name,
-            email,
-            password: hashedPassword,
-            cart: { items: [] },
-          });
-          return user.save();
-        })
-        .then(_result => {
-          res.redirect('/login');
-          return transporter
-            .sendMail({
-              to: email,
-              from: 'shop@node-complete.com',
-              subject: 'Account created',
-              html: `<p>Account created for email ${email}</p>`,
-            })
-            .catch(err => console.log(err));
-        });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render('auth/signup', {
+      pageTitle: 'Signup',
+      path: '/signup',
+      errorMessage: errors.array()[0].msg,
+      oldInput: {
+        name,
+        email,
+      },
+      validationErrors: errors.array(),
+    });
+  }
+  bcrypt
+    .hash(password, 12)
+    .then(hashedPassword => {
+      const user = new User({
+        name,
+        email,
+        password: hashedPassword,
+        cart: { items: [] },
+      });
+      return user.save();
     })
-    .catch(err => console.log(err));
+    .then(_result => {
+      res.redirect('/login');
+      return transporter
+        .sendMail({
+          to: email,
+          from: 'shop@node-complete.com',
+          subject: 'Account created',
+          html: `<p>Account created for email ${email}</p>`,
+        })
+        .catch(err => console.log(err));
+    });
 };
 
 exports.getReset = (req, res, next) => {
