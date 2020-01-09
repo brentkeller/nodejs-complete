@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PDFDocument = require('pdfkit');
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
 
 const Product = require('../models/product');
 const Order = require('../models/order');
@@ -155,7 +156,13 @@ exports.postCartDeleteItem = (req, res, next) => {
     });
 };
 
-exports.postCreateOrder = (req, res, next) => {
+exports.getCheckoutSuccess = (req, res, next) => {
+  /*
+  Note: This approach of creating the order based on a GET request after the redirect from Stripe checkout
+  is not really secure. Instead you should let stripe tell you that a payment is successful via a webhook.
+  This probably involves creating the order this way but not fulfilling it until the webhook is received.
+  The Stripe docs are great and provide guidance for this sort of thing, check them for the latest recommendations
+  */
   req.user
     .populate('cart.items.productId')
     .execPopulate()
@@ -238,4 +245,47 @@ exports.getInvoice = (req, res, next) => {
       pdfDoc.end();
     })
     .catch(err => next(err));
+};
+
+exports.getCheckout = (req, res, next) => {
+  let products;
+  let totalPrice = 0;
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then(user => {
+      products = user.cart.items;
+      totalPrice = products.reduce(
+        (total, item) => total + item.quantity * item.productId.price,
+        0.0,
+      );
+      return stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: products.map(p => {
+          return {
+            name: p.productId.title,
+            description: p.productId.description || 'No description',
+            amount: p.productId.price * 100, // stripe wants amount in cents
+            currency: 'usd',
+            quantity: p.quantity,
+          };
+        }),
+        success_url: `${req.protocol}://${req.get('host')}/checkout/success`,
+        cancel_url: `${req.protocol}://${req.get('host')}/checkout/cancel`,
+      });
+    })
+    .then(session => {
+      res.render('shop/checkout', {
+        path: '/checkout',
+        pageTitle: 'Checkout',
+        products,
+        totalPrice: totalPrice.toFixed(2),
+        sessionId: session.id,
+      });
+    })
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
