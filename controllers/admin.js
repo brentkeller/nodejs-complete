@@ -182,17 +182,33 @@ exports.postEditProduct = (req, res, next) => {
     });
 };
 
-exports.postDeleteProduct = (req, res, next) => {
-  const prodId = req.body.productId;
+// Converted to "DELETE" method
+// exports.postDeleteProduct = (req, res, next) => {
+//   const prodId = req.body.productId;
+//   Product.findOne({ _id: prodId, userId: req.user._id })
+//     .then(product => {
+//       deleteFile(product.imageUrl);
+//       return Product.deleteOne({ _id: prodId, userId: req.user._id });
+//     })
+//     .then(() => {
+//       res.redirect('/admin/products');
+//     })
+//     .catch(err => next(error));
+// };
+
+exports.deleteProduct = (req, res, next) => {
+  const prodId = req.params.productId;
   Product.findOne({ _id: prodId, userId: req.user._id })
     .then(product => {
       deleteFile(product.imageUrl);
       return Product.deleteOne({ _id: prodId, userId: req.user._id });
     })
     .then(() => {
-      res.redirect('/admin/products');
+      res.status(200).json({ message: 'Success' });
     })
-    .catch(err => next(error));
+    .catch(err => {
+      res.status(200).json({ message: 'error occurred' });
+    });
 };
 
 exports.getProducts = (req, res, next) => {
