@@ -19,7 +19,6 @@ productValidators = [
     .isString()
     .isLength({ min: 3 })
     .trim(),
-  body('imageUrl', 'Invalid URL').isURL(),
   body('price', 'Invalid price').isFloat(),
   body('description', 'Description should be between 3 and 400 chars')
     .isLength({ min: 3, max: 400 })

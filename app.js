@@ -7,6 +7,7 @@ const session = require('express-session');
 const MongoDbStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
+const multer = require('multer');
 
 const errorController = require('./controllers/error');
 const User = require('./models/user');
@@ -30,8 +31,31 @@ const defaultName = 'Brent';
 const defaultEmail = 'test@test.com';
 const userId = '5e14ed1592309c7b4c9a53c6';
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'images');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${new Date().getTime()}-${file.originalname}`);
+  },
+});
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype == 'image/png' ||
+    file.mimetype == 'image/jpg' ||
+    file.mimetype == 'image/jpeg'
+  )
+    return cb(null, true);
+  // not valid file type
+  return cb(null, false);
+};
+
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single('image'),
+);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(
   session({
     secret: 'mysecret',
@@ -76,6 +100,7 @@ app.use((error, req, res, next) => {
   //res.redirect('/500');
 
   // can directly render 500 page to avoid infinite loops with redirects and errors in middleware
+  console.log(error);
   res.status(500).render('500', {
     pageTitle: 'Error!',
     path: '/500',

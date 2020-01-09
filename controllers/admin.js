@@ -11,7 +11,6 @@ exports.getAddProduct = (req, res, next) => {
     hasError: false,
     product: {
       title: '',
-      imageUrl: '',
       price: '',
       description: '',
     },
@@ -22,9 +21,25 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
+
+  if (!image) {
+    return res.status(422).render('admin/edit-product', {
+      pageTitle: 'Add Product',
+      path: '/admin/add-product',
+      editing: false,
+      hasError: true,
+      product: {
+        title,
+        price,
+        description,
+      },
+      errorMessage: 'Attached file is not an image',
+      validationErrors: [],
+    });
+  }
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -35,7 +50,6 @@ exports.postAddProduct = (req, res, next) => {
       hasError: true,
       product: {
         title,
-        imageUrl,
         price,
         description,
       },
@@ -43,6 +57,8 @@ exports.postAddProduct = (req, res, next) => {
       validationErrors: errors.array(),
     });
   }
+
+  const imageUrl = image.path;
 
   const product = new Product({
     title,
@@ -91,10 +107,29 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.postEditProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
   const prodId = req.body.productId;
+
+  // Could include this validation to enforce changing the image every edit,
+  // but for now keep old image if none is provided
+  // if (!image) {
+  //   return res.status(422).render('admin/edit-product', {
+  //     pageTitle: 'Edit Product',
+  //     path: '/admin/edit-product',
+  //     editing: true,
+  //     hasError: true,
+  //     product: {
+  //       _id: prodId,
+  //       title,
+  //       price,
+  //       description,
+  //     },
+  //     errorMessage: 'Attached file is not an image',
+  //     validationErrors: [],
+  //   });
+  // }
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -102,10 +137,10 @@ exports.postEditProduct = (req, res, next) => {
       pageTitle: 'Edit Product',
       path: '/admin/edit-product',
       editing: true,
+      hasError: true,
       product: {
         _id: prodId,
         title,
-        imageUrl,
         price,
         description,
       },
@@ -120,9 +155,10 @@ exports.postEditProduct = (req, res, next) => {
         return res.redirect('/');
       }
       product.title = title;
-      product.imageUrl = imageUrl;
       product.price = price;
       product.description = description;
+      // Only update imageUrl if a new image was provided
+      if (image) product.imageUrl = imageUrl;
 
       return product
         .save()
