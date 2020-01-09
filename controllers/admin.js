@@ -2,6 +2,7 @@ const mongodb = require('mongodb');
 const { validationResult } = require('express-validator');
 
 const Product = require('../models/product');
+const { deleteFile } = require('../util/file');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -158,7 +159,10 @@ exports.postEditProduct = (req, res, next) => {
       product.price = price;
       product.description = description;
       // Only update imageUrl if a new image was provided
-      if (image) product.imageUrl = imageUrl;
+      if (image) {
+        deleteFile(product.imageUrl);
+        product.imageUrl = image.path;
+      }
 
       return product
         .save()
@@ -180,15 +184,15 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteOne({ _id: prodId, userId: req.user._id })
+  Product.findOne({ _id: prodId, userId: req.user._id })
+    .then(product => {
+      deleteFile(product.imageUrl);
+      return Product.deleteOne({ _id: prodId, userId: req.user._id });
+    })
     .then(() => {
       res.redirect('/admin/products');
     })
-    .catch(err => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+    .catch(err => next(error));
 };
 
 exports.getProducts = (req, res, next) => {
