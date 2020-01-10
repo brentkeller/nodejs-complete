@@ -3,12 +3,36 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const multer = require('multer');
 
 const feedRouter = require('./routes/feed');
 
 const app = express();
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'images');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${new Date().getTime()}-${file.originalname}`);
+  },
+});
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype == 'image/gif' ||
+    file.mimetype == 'image/png' ||
+    file.mimetype == 'image/jpg' ||
+    file.mimetype == 'image/jpeg'
+  )
+    return cb(null, true);
+  // not valid file type
+  return cb(null, false);
+};
+
 app.use(bodyParser.json()); // for application/json
+app.use(
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single('image'),
+);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 app.use((req, res, next) => {
