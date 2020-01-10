@@ -33,8 +33,9 @@ exports.getPosts = (req, res, next) => {
 exports.postPost = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const error = new Error(`Validation failed: ${errors.array()[0].msg}`);
+    const error = new Error(`Validation failed`);
     error.statusCode = 422;
+    error.data = errors.array();
     throw error;
   }
   if (!req.file) {
@@ -99,9 +100,9 @@ exports.putPost = (req, res, next) => {
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const error = new Error(`Validation failed: ${errors.array()[0].msg}`);
+    const error = new Error(`Validation failed`);
     error.statusCode = 422;
-    throw error;
+    error.data = errors.array();
   }
 
   Post.findById(postId)
