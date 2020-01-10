@@ -4,6 +4,7 @@ const path = require('path');
 const { validationResult } = require('express-validator');
 
 const Post = require('../models/post');
+const User = require('../models/user');
 
 exports.getPosts = (req, res, next) => {
   const currentPage = +req.query.page || 1;
@@ -47,19 +48,30 @@ exports.postPost = (req, res, next) => {
   const imageUrl = req.file.path.replace('\\', '/');
   const title = req.body.title;
   const content = req.body.content;
+  const userId = req.userId;
+  let creator;
 
   const post = new Post({
     title,
     imageUrl,
     content,
-    creator: { name: 'Brent' },
+    creator: userId,
   });
   post
     .save()
     .then(result => {
+      return User.findById(userId);
+    })
+    .then(user => {
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then(_user => {
       res.status(201).json({
         message: 'Post created',
         post,
+        creator: { _id: creator._id, name: creator.name },
       });
     })
     .catch(err => {
@@ -112,6 +124,11 @@ exports.putPost = (req, res, next) => {
         error.statusCode = 404;
         throw error;
       }
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error('Not authorized');
+        error.statusCode = 403;
+        throw error;
+      }
       if (imageUrl !== post.imageUrl) {
         deleteImage(post.imageUrl);
       }
@@ -141,8 +158,21 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 404;
         throw error;
       }
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error('Not authorized');
+        error.statusCode = 403;
+        throw error;
+      }
       deleteImage(post.imageUrl);
       return Post.findByIdAndDelete(postId);
+    })
+    .then(post => {
+      return User.findById(post.creator);
+    })
+    .then(user => {
+      //user.posts = users.posts.filter(p => p._id !== postId);
+      user.posts.pull(postId);
+      return user.save();
     })
     .then(result => {
       res.status(200).json({ message: 'Post deleted.' });
