@@ -7,6 +7,7 @@ const multer = require('multer');
 
 const feedRouter = require('./routes/feed');
 const authRouter = require('./routes/auth');
+const statusRouter = require('./routes/status');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use((req, res, next) => {
 
 app.use('/feed', feedRouter);
 app.use('/auth', authRouter);
+app.use(statusRouter);
 
 app.use((error, req, res, next) => {
   console.log('error', error);
