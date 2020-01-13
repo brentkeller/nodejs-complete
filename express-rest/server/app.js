@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -53,6 +54,22 @@ app.use((req, res, next) => {
 
 app.use(authMiddleware);
 
+app.put('/post-image', (req, res, next) => {
+  if (!req.isAuth) {
+    throw new Error('Not authenticated');
+  }
+  if (!req.file) {
+    return res.status(200).json({ message: 'No file provided' });
+  }
+  if (req.body.oldPath) deleteImage(req.body.oldPath);
+  return res
+    .status(201)
+    .json({
+      message: 'File stored.',
+      imagePath: req.file.path.replace('\\', '/'),
+    });
+});
+
 app.use(
   '/graphql',
   graphqlHttp({
@@ -91,3 +108,15 @@ mongoose
     app.listen(8080);
   })
   .catch(err => console.log(err));
+
+const deleteImage = async filePath => {
+  // Get full disk path by going up a level since we're in a folder now
+  filePath = path.join(__dirname, '..', filePath);
+  fs.exists(filePath, exists => {
+    if (exists) {
+      fs.unlink(filePath, err => {
+        if (err) throw err;
+      });
+    }
+  });
+};
