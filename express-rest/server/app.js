@@ -1,11 +1,11 @@
 const path = require('path');
-const fs = require('fs');
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const graphqlHttp = require('express-graphql');
+const { deleteImage } = require('./util/file');
 
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
@@ -62,12 +62,10 @@ app.put('/post-image', (req, res, next) => {
     return res.status(200).json({ message: 'No file provided' });
   }
   if (req.body.oldPath) deleteImage(req.body.oldPath);
-  return res
-    .status(201)
-    .json({
-      message: 'File stored.',
-      imagePath: req.file.path.replace('\\', '/'),
-    });
+  return res.status(201).json({
+    message: 'File stored.',
+    imagePath: req.file.path.replace('\\', '/'),
+  });
 });
 
 app.use(
@@ -108,15 +106,3 @@ mongoose
     app.listen(8080);
   })
   .catch(err => console.log(err));
-
-const deleteImage = async filePath => {
-  // Get full disk path by going up a level since we're in a folder now
-  filePath = path.join(__dirname, '..', filePath);
-  fs.exists(filePath, exists => {
-    if (exists) {
-      fs.unlink(filePath, err => {
-        if (err) throw err;
-      });
-    }
-  });
-};
