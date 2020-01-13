@@ -8,6 +8,7 @@ const graphqlHttp = require('express-graphql');
 
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
+const authMiddleware = require('./middleware/auth');
 
 const app = express();
 
@@ -49,6 +50,8 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+app.use(authMiddleware);
 
 app.use(
   '/graphql',
