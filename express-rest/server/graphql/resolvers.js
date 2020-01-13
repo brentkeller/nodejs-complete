@@ -1,7 +1,10 @@
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
+const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
+
+const JWT_SECRET = 'reallysupersecretstring';
 
 module.exports = {
   createUser: async function({ userInput }, req) {
@@ -45,10 +48,31 @@ module.exports = {
       _id: createdUser._id.toString(),
     };
   },
-};
+  login: async function({ email, password }) {
+    const user = await User.findOne({ email });
+    if (!user) {
+      const error = new Error('Invalid email or password');
+      throw error;
+    }
 
-// const isMatch = await bcrypt.compare(password, user.password);
-// if (!isMatch) {
-//   const error = new Error('Invalid email or password');
-//   throw error;
-// }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      const error = new Error('Invalid email or password');
+      throw error;
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id.toString(),
+        email,
+      },
+      JWT_SECRET,
+      { expiresIn: '1hr' },
+    );
+
+    return {
+      token,
+      userId: user._id.toString(),
+    };
+  },
+};
