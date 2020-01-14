@@ -12,7 +12,7 @@ const multer = require('multer');
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
-const MONGODB_URI = 'mongodb://127.0.0.1:27017/node-complete';
+const MONGODB_URI = process.env.MONGODB_URI;
 const app = express();
 const store = new MongoDbStore({
   uri: MONGODB_URI,
@@ -26,10 +26,6 @@ app.set('views', 'views');
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
-
-const defaultName = 'Brent';
-const defaultEmail = 'test@test.com';
-const userId = '5e14ed1592309c7b4c9a53c6';
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -113,25 +109,8 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(client => {
+  .then(_client => {
     console.log('mongoose connected');
     app.listen(3000);
-    // Ensure we have a default user
-    // User.findById(userId)
-    //   .then(user => {
-    //     if (!user) {
-    //       user = new User({
-    //         name: defaultName,
-    //         email: defaultEmail,
-    //         cart: { items: [] },
-    //       });
-    //       return user.save();
-    //     }
-    //     return user;
-    //   })
-    //   .then(user => {
-    //     app.listen(3000);
-    //   })
-    //   .catch(err => console.log(err));
   })
   .catch(err => console.log(err));
