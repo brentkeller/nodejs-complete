@@ -8,9 +8,11 @@ exports.getStatus = async (req, res, next) => {
     res.status(200).json({
       status: user.status,
     });
+    return;
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;
     next(err);
+    return err;
   }
 };
 
