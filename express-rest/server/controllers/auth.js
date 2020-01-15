@@ -29,6 +29,7 @@ exports.signup = async (req, res, next) => {
     if (!err.statusCode) err.statusCode = 500;
     next(err);
   }
+  return;
 };
 
 exports.login = async (req, res, next) => {
@@ -57,13 +58,14 @@ exports.login = async (req, res, next) => {
       { expiresIn: '1h' },
     );
 
-    return res.status(200).json({
+    res.status(200).json({
       token,
       userId: user._id.toString(),
     });
+    return;
   } catch (err) {
-    const error = new Error(err);
-    error.httpStatusCode = 500;
-    return next(error);
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+    return err;
   }
 };
