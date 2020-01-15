@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha",
     "start": "nodemon app.js",
     "dev": "nodemon -r dotenv/config app.js"
   },
@@ -20,7 +20,10 @@
     "multer": "^1.4.2"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
     "dotenv": "^8.2.0",
-    "nodemon": "^2.0.2"
+    "mocha": "^7.0.0",
+    "nodemon": "^2.0.2",
+    "sinon": "^8.0.4"
   }
 }
